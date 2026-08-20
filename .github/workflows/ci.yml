@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   ci:
-    uses: fiap-tech-challenge-devops/reusable-workflows/.github/workflows/go-ci.yml@feature/ci-devsecops
+    uses: fiap-tech-challenge-devops/reusable-workflows/.github/workflows/go-ci.yml@feature/ci-ecr
 
     with:
       go-version: "1.21"
