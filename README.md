@@ -31,7 +31,7 @@ Ele funciona da seguinte forma:
     ```bash
     curl -X POST http://localhost:8001/admin/keys \
     -H "Content-Type: application/json" \
-    -H "Authorization: Bearer admin-secreto-123" \
+    -H "Authorization: Bearer $MASTER_KEY" \
     -d '{"name": "evaluation-service-key"}'
     ```
     Guarde a chave `key` retornada (ex: `tm_key_...`). Vamos chamá-la de `SUA_CHAVE_DE_SERVICO`.
