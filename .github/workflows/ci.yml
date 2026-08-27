@@ -15,13 +15,18 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
-    uses: fiap-tech-challenge-devops/reusable-workflows/.github/workflows/go-ci.yml@main
+    uses: fiap-tech-challenge-devops/reusable-workflows/.github/workflows/go-ci.yml@v2.1.0
 
     with:
       go-version: "1.21"
       ecr-repository: "togglemaster/evaluation-service"
+      aws-region: "us-east-1"
 
     secrets:
       AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
