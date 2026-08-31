@@ -4,20 +4,6 @@ on:
   workflow_run:
     workflows: ["Evaluation Service CI"]
     types: [completed]
-  workflow_dispatch:
-    inputs:
-      image-tag:
-        description: SHA da imagem já publicada no ECR
-        required: true
-        type: string
-      environment:
-        description: Ambiente do GitOps
-        required: false
-        default: prod
-        type: choice
-        options:
-          - prod
-          - staging
 
 permissions:
   contents: read
@@ -25,17 +11,14 @@ permissions:
 jobs:
   promote:
     if: >-
-      github.event_name == 'workflow_dispatch' || (
-        github.event_name == 'workflow_run' &&
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.event == 'push' &&
-        github.event.workflow_run.head_branch == 'main'
-      )
-    uses: fiap-tech-challenge-devops/reusable-workflows/.github/workflows/cd.yml@main
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    uses: fiap-tech-challenge-devops/reusable-workflows/.github/workflows/cd.yml@v2.2.0
     with:
       service-name: evaluation-service
       image-repository: 762103020993.dkr.ecr.us-east-1.amazonaws.com/togglemaster/evaluation-service
-      image-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.image-tag || github.event.workflow_run.head_sha }}
-      environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'prod' }}
+      image-tag: ${{ github.event.workflow_run.head_sha }}
+      environment: prod
     secrets:
       GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
