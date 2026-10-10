@@ -1,8 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -16,12 +17,13 @@ func (a *App) healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
-		log.Printf("Erro ao escrever resposta de health: %v", err)
+		slog.ErrorContext(r.Context(), "Erro ao escrever resposta de health", "erro", err)
 	}
 }
 
 func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	ctx := r.Context()
 
 	// 1. Parsear os query parameters
 	userID := r.URL.Query().Get("user_id")
@@ -33,22 +35,24 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. Obter a decisão (lógica de cache/serviço está em evaluator.go)
-	result, err := a.getDecision(userID, flagName)
+	result, err := a.getDecision(ctx, userID, flagName)
 	if err != nil {
 		// Se o erro for "não encontrado", retornamos 'false' (comportamento seguro)
 		if _, ok := err.(*NotFoundError); ok {
 			result = false
 		} else {
 			// Outros erros (serviços offline, etc)
-			log.Printf("Erro ao avaliar flag '%s': %v", flagName, err)
+			slog.ErrorContext(ctx, "Erro ao avaliar flag", "flag", flagName, "erro", err)
 			http.Error(w, `{"error": "Erro interno ao avaliar a flag"}`, http.StatusBadGateway)
 			return
 		}
 	}
 
 	// 3. Enviar evento para SQS (assincronamente)
-	// Isso não bloqueia a resposta para o cliente.
-	go a.sendEvaluationEvent(userID, flagName, result)
+	// WithoutCancel preserva o trace, mas desliga do cancelamento: o contexto da
+	// requisicao morre ao responder, e a goroutine continua.
+	eventCtx := context.WithoutCancel(ctx)
+	go a.sendEvaluationEvent(eventCtx, userID, flagName, result)
 
 	// 4. Retornar a resposta
 	w.WriteHeader(http.StatusOK)
@@ -57,6 +61,6 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 		UserID:   userID,
 		Result:   result,
 	}); err != nil {
-		log.Printf("Erro ao escrever resposta da avaliacao da flag '%s': %v", flagName, err)
+		slog.ErrorContext(ctx, "Erro ao escrever resposta da avaliacao", "flag", flagName, "erro", err)
 	}
 }
