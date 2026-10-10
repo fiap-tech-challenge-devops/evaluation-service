@@ -1,0 +1,7 @@
+# Binarios do build local
+evaluation-service
+evaluation-service.exe
+
+# Variaveis locais
+.env
+*.env
